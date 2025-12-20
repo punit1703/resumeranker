@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>ATS Score Test</title>
+  </head>
+  <body>
+    <h2>ATS Score Test</h2>
+
+    <form action="http://127.0.0.1:8000/api/ats/score/" method="POST">
+      <label>Resume Text</label><br />
+      <textarea name="resume_text" rows="10" cols="80"></textarea>
+      <br /><br />
+
+      <label>Job Description</label><br />
+      <textarea name="job_desc" rows="10" cols="80"></textarea>
+      <br /><br />
+
+      <button type="submit">Get ATS Score</button>
+    </form>
+  </body>
+</html>

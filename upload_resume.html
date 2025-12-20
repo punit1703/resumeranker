@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Resume Upload Test</title>
+</head>
+<body>
+    <h2>Upload Resume</h2>
+
+    <form action="http://127.0.0.1:8000/api/ats/upload/" 
+          method="POST" 
+          enctype="multipart/form-data">
+
+        <input type="file" name="resume" required />
+        <br><br>
+
+        <button type="submit">Upload</button>
+    </form>
+</body>
+</html>
