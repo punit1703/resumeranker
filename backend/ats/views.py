@@ -6,6 +6,7 @@ from django.core.files.storage import default_storage
 from .parser.resume_parser import extract_text
 from .scoring.ats_score import calculate_ats_score
 from django.views.decorators.csrf import csrf_exempt
+from .ranking.ranker import rank_resumes
 # Create your views here.
 
 @csrf_exempt
@@ -44,4 +45,31 @@ def ats_score(request):
 
     return Response({
         'ats_score': score
+    })
+
+@api_view(['POST'])
+def rank_multiple_resumes(request):
+    job_desc = request.data.get('job_desc')
+    files = request.FILES.getlist('resumes')
+
+    if not job_desc or not files:
+        return Response({'error': 'Missing job description or resumes'}, status=400)
+    
+    extracted_resumes = []
+
+    for resume in files:
+        file_path = default_storage.save(resume.name, resume)
+        full_path = default_storage.path(file_path)
+
+        text = extract_text(full_path)
+
+        extracted_resumes.append({'filename': resume.name, 'text':text})
+
+        os.remove(full_path)
+
+    ranked_resume = rank_resumes(extracted_resumes, job_desc)
+
+    return Response({
+        'total_resumes': len(ranked_resume),
+        'ranked_candidates': ranked_resume
     })
