@@ -1,4 +1,5 @@
 import os
+from django.http import FileResponse
 from django.shortcuts import render
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -7,7 +8,8 @@ from .parser.resume_parser import extract_text
 from .scoring.ats_score import calculate_ats_score
 from django.views.decorators.csrf import csrf_exempt
 from .ranking.ranker import rank_resumes
-# Create your views here.
+from .resume_builder.builder import build_resume
+from .resume_builder.pdf_generator import generate_pdf
 
 @csrf_exempt
 @api_view(['GET'])
@@ -73,3 +75,19 @@ def rank_multiple_resumes(request):
         'total_resumes': len(ranked_resume),
         'ranked_candidates': ranked_resume
     })
+
+@api_view(['POST'])
+def generate_resume(request):
+    data = request.data
+
+    if not data.get('name'):
+        return Response({'error': 'Name is Required'}, status=400)
+    
+    resume_text = build_resume(data)
+    pdf_path = generate_pdf(resume_text)
+
+    return FileResponse(
+        open(pdf_path, "rb"),
+        as_attachment=True,
+        filename="ATS_Resume.pdf"
+    )

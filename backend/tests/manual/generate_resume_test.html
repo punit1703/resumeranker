@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <h2>Generate ATS Resume</h2>
+
+    <form action="http://127.0.0.1:8000/api/ats/generate-resume/" method="POST">
+      <textarea name="name">Punit Patel</textarea><br /><br />
+      <textarea name="email">punit@email.com</textarea><br /><br />
+      <textarea name="phone">+91 9999999999</textarea><br /><br />
+
+      <textarea name="summary">
+Aspiring Machine Learning Engineer with experience in Python, Django, and NLP.
+</textarea
+      ><br /><br />
+
+      <textarea name="skills">
+Python, Machine Learning, Django, REST APIs, SQL
+</textarea
+      ><br /><br />
+
+      <textarea name="education">
+Bachelor of Computer Engineering
+</textarea
+      ><br /><br />
+
+      <button type="submit">Generate Resume PDF</button>
+    </form>
+  </body>
+</html>
