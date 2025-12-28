@@ -10,6 +10,7 @@ from django.views.decorators.csrf import csrf_exempt
 from .ranking.ranker import rank_resumes
 from .resume_builder.builder import build_resume
 from .resume_builder.pdf_generator import generate_pdf
+from .analysis.skill_gap import skill_gap_analysis
 
 @csrf_exempt
 @api_view(['GET'])
@@ -44,9 +45,12 @@ def ats_score(request):
         return Response({'error':'Missing Data'}, status=400)
     
     score = calculate_ats_score(resume_text, job_desc)
+    gap_analysis = skill_gap_analysis(resume_text, job_desc)
 
     return Response({
-        'ats_score': score
+        'ats_score': score,
+        'missing_skills': gap_analysis['missing_skills'],
+        'suggestions': gap_analysis['suggestions']
     })
 
 @api_view(['POST'])
