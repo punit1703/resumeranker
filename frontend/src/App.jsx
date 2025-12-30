@@ -1,9 +1,23 @@
+import { Routes, Route } from "react-router-dom";
+import Navbar from "../components/Navbar";
+import Home from "../pages/Home";
+import Analyze from "../pages/Analyze";
+import Rank from "../pages/Rank";
+import Generate from "../pages/Generate";
+
 export default function App() {
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <h1 className="text-4xl font-bold text-indigo-600">
-        Tailwind CSS v4 Working 🚀
-      </h1>
+    <div className="min-h-screen bg-gray-100">
+      <Navbar />
+
+      <main>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/analyze" element={<Analyze />} />
+          <Route path="/rank" element={<Rank />} />
+          <Route path="/generate" element={<Generate />} />
+        </Routes>
+      </main>
     </div>
-  )
+  );
 }
