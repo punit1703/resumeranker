@@ -7,5 +7,4 @@ urlpatterns = [
     path('score/', ats_score),
     path('rank/', rank_multiple_resumes),
     path('generate-resume/', generate_resume),
-
 ]
