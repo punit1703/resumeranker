@@ -31,7 +31,6 @@ export default function FeatureCards() {
               key={i}
               className="group bg-white px-8 py-5 rounded-2xl shadow-sm transition delay-75 duration-300 ease-in-out hover:shadow-lg"
             >
-              {/* icon container */}
               <div className="
                 w-12 h-12 mb-6 rounded-xl
                 bg-indigo-100

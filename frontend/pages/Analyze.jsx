@@ -1,6 +1,12 @@
-import { Upload, FileText, AlertCircle } from "lucide-react";
+import {
+  Upload,
+  FileText,
+  AlertCircle,
+  Check,
+  AlertTriangle,
+  Lightbulb,
+} from "lucide-react";
 import { useState } from "react";
-
 export default function Analyze() {
   const [resume, setResume] = useState(null);
   const [jobDesc, setJobDesc] = useState("");
@@ -118,8 +124,9 @@ export default function Analyze() {
                 {resume ? (
                   <div className="flex flex-col items-center justify-center text-indigo-600">
                     <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center mb-3">
-                      ✓
+                      <Check className="w-5 h-5 text-indigo-600" />
                     </div>
+
                     <p className="text-sm font-medium text-gray-900">
                       {resume.name}
                     </p>
@@ -249,7 +256,8 @@ export default function Analyze() {
 
                 <div className="bg-white rounded-2xl p-6 shadow-sm">
                   <h4 className="font-semibold mb-4 flex items-center gap-2">
-                    ⚠️ Missing Skills
+                    <AlertTriangle className="w-4 h-4 text-yellow-500" />
+                    Missing Skills
                   </h4>
 
                   <div className="flex flex-wrap gap-3">
@@ -266,7 +274,8 @@ export default function Analyze() {
 
                 <div className="bg-white rounded-2xl p-6 shadow-sm">
                   <h4 className="font-semibold mb-4 flex items-center gap-2">
-                    💡 Improvement Suggestions
+                    <Lightbulb className="w-4 h-4 text-indigo-500" />
+                    Improvement Suggestions
                   </h4>
 
                   <ul className="space-y-3 text-sm text-gray-600">

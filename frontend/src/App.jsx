@@ -4,13 +4,14 @@ import Home from "../pages/Home";
 import Analyze from "../pages/Analyze";
 import Rank from "../pages/Rank";
 import Generate from "../pages/Generate";
+import Footer from "../components/Footer";
 
 export default function App() {
   return (
     <div className="min-h-screen bg-gray-100">
       <Navbar />
 
-      <main>
+      <main className="mt-10">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/analyze" element={<Analyze />} />
@@ -18,6 +19,7 @@ export default function App() {
           <Route path="/generate" element={<Generate />} />
         </Routes>
       </main>
+      <Footer/>
     </div>
   );
 }
