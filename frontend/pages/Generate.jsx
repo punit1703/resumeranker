@@ -40,8 +40,8 @@ function Textarea({ icon: Icon, label, ...props }) {
 }
 
 export default function Generate() {
-  // const API_BASE = "https://resume-ranker-backend-esei.onrender.com";
-  const API_BASE = "http://127.0.0.1:8000/";
+  const API_BASE = "https://resume-ranker-backend-esei.onrender.com";
+  // const API_BASE = "http://127.0.0.1:8000/";
   const [form, setForm] = useState({
     name: "",
     email: "",
