@@ -68,7 +68,7 @@ export default function Generate() {
     setSuccess(false);
 
     try {
-      const res = await fetch(`${API_BASE}api/ats/generate-resume/`, {
+      const res = await fetch(`${API_BASE}/api/ats/generate-resume/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
