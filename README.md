@@ -116,10 +116,16 @@ https://resume-ranker-backend-esei.onrender.com
 
 ---
 
-## 👨‍💻 Author
+## 👨‍💻 Primary Contributor
 
 **Punit Patel**  
-Computer Engineering Student  
-Interested in Backend Development, Machine Learning, and System Design
+Backend development, ATS logic, API design, deployment
+
+---
+
+## 👥 Project Team
+
+- **Purv Patel** — Documentation
+- **Om Patel** — UI review,Testing and presentation support
 
 ---
