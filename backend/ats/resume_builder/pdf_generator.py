@@ -1,28 +1,18 @@
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
-import os
-import uuid
+from io import BytesIO
 
-def generate_pdf(resume_text):
-    file_name = f"resume_{uuid.uuid4().hex}.pdf"
-    file_path = os.path.join("media", file_name)
+def generate_pdf(resume_text: str):
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=A4)
 
-    c = canvas.Canvas(file_path, pagesize=A4)
-    width, height = A4
-
-    x = 50
-    y = height - 50
-
-    c.setFont("Helvetica", 11)
-
+    text = p.beginText(40, 800)
     for line in resume_text.split("\n"):
-        if y < 50:  # page overflow
-            c.showPage()
-            c.setFont("Helvetica", 11)
-            y = height - 50
+        text.textLine(line)
 
-        c.drawString(x, y, line)
-        y -= 14  # line spacing
+    p.drawText(text)
+    p.showPage()
+    p.save()
 
-    c.save()
-    return file_path
+    buffer.seek(0)
+    return buffer

@@ -1,6 +1,4 @@
 import os
-from django.http import FileResponse
-from django.shortcuts import render
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.core.files.storage import default_storage
@@ -11,6 +9,7 @@ from .ranking.ranker import rank_resumes
 from .resume_builder.builder import build_resume
 from .resume_builder.pdf_generator import generate_pdf
 from .analysis.skill_gap import skill_gap_analysis
+from django.http import HttpResponse
 
 @csrf_exempt
 @api_view(['GET'])
@@ -85,13 +84,14 @@ def generate_resume(request):
     data = request.data
 
     if not data.get('name'):
-        return Response({'error': 'Name is Required'}, status=400)
-    
-    resume_text = build_resume(data)
-    pdf_path = generate_pdf(resume_text)
+        return Response({'error': 'Name is required'}, status=400)
 
-    return FileResponse(
-        open(pdf_path, "rb"),
-        as_attachment=True,
-        filename="ATS_Resume.pdf"
+    resume_text = build_resume(data)
+    pdf_buffer = generate_pdf(resume_text)
+
+    response = HttpResponse(
+        pdf_buffer,
+        content_type='application/pdf'
     )
+    response['Content-Disposition'] = 'attachment; filename="ATS_Resume.pdf"'
+    return response

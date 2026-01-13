@@ -40,8 +40,8 @@ function Textarea({ icon: Icon, label, ...props }) {
 }
 
 export default function Generate() {
-  const API_BASE = "https://resume-ranker-backend-esei.onrender.com";
-  // const API_BASE = "http://127.0.0.1:8000/";
+  // const API_BASE = "https://resume-ranker-backend-esei.onrender.com";
+  const API_BASE = "http://127.0.0.1:8000/";
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -75,6 +75,16 @@ export default function Generate() {
         },
         body: JSON.stringify(form),
       });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText);
+      }
+
+      const contentType = res.headers.get("content-type");
+      if (!contentType.includes("application/pdf")) {
+        throw new Error("Server did not return a PDF");
+      }
 
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
