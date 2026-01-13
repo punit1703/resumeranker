@@ -33,7 +33,7 @@ def upload_resume(request):
 
     return Response({
         'filename': resume.name,
-        'text_preview': text[:500]
+        'text_preview': text
     })
 
 @api_view(['POST'])

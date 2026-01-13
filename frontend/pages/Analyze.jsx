@@ -9,7 +9,8 @@ import {
 import { useState } from "react";
 
 export default function Analyze() {
-  const API_BASE = "https://resume-ranker-backend-esei.onrender.com";
+  // const API_BASE = "https://resume-ranker-backend-esei.onrender.com";
+  const API_BASE = "http://127.0.0.1:8000/";
 
   const [resume, setResume] = useState(null);
   const [jobDesc, setJobDesc] = useState("");

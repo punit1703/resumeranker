@@ -3,7 +3,7 @@ def build_resume(data):
 
     resume.append(data.get("name", "").upper())
     resume.append(
-        f"Email: {data.get('email', '')} | Phone: {data.get('phone', '')}"
+        f"Email: {data.get('email', '')} | Phone: {data.get('phone', 'N/A')}"
     )
     resume.append("-" * 50)
 

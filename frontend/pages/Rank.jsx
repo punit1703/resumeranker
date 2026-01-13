@@ -2,7 +2,9 @@ import { Upload, FileText, Users, Trophy } from "lucide-react";
 import { useState } from "react";
 
 export default function Rank() {
-  const API_BASE = "https://resume-ranker-backend-esei.onrender.com";
+  // const API_BASE = "https://resume-ranker-backend-esei.onrender.com";
+  const API_BASE = "http://127.0.0.1:8000/";
+
   const [files, setFiles] = useState([]);
   const [jobDesc, setJobDesc] = useState("");
   const [result, setResult] = useState(null);

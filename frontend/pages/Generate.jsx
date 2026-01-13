@@ -40,10 +40,12 @@ function Textarea({ icon: Icon, label, ...props }) {
 }
 
 export default function Generate() {
-  const API_BASE = "https://resume-ranker-backend-esei.onrender.com";
+  // const API_BASE = "https://resume-ranker-backend-esei.onrender.com";
+  const API_BASE = "http://127.0.0.1:8000/";
   const [form, setForm] = useState({
     name: "",
     email: "",
+    phone: "",
     skills: "",
     education: "",
     experience: "",
@@ -116,6 +118,15 @@ export default function Generate() {
             />
           </div>
 
+          <Input
+            icon={User}
+            label="Phone Number"
+            name="phone"
+            value={form.phone}
+            onChange={handleChange}
+            placeholder="+91 98765 43210"
+          />
+
           <Textarea
             icon={FileText}
             label="Skills"
@@ -163,17 +174,18 @@ export default function Generate() {
           </div>
 
           {success && (
-  <div className="mt-6 flex gap-3 p-4 rounded-xl bg-green-50 border border-green-200 text-green-700">
-    <CheckCircle className="w-5 h-5 mt-0.5 text-green-600" />
+            <div className="mt-6 flex gap-3 p-4 rounded-xl bg-green-50 border border-green-200 text-green-700">
+              <CheckCircle className="w-5 h-5 mt-0.5 text-green-600" />
 
-    <div>
-      <p className="font-medium">Resume Generated Successfully!</p>
-      <p className="text-sm">
-        Your ATS-optimized resume is ready. Click the download button to save it.
-      </p>
-    </div>
-  </div>
-)}
+              <div>
+                <p className="font-medium">Resume Generated Successfully!</p>
+                <p className="text-sm">
+                  Your ATS-optimized resume is ready. Click the download button
+                  to save it.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </section>
