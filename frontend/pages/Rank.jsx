@@ -1,15 +1,30 @@
-import { Upload, FileText, Users, Trophy } from "lucide-react";
-import { useState } from "react";
+import { Upload, FileText, Users, Trophy, Briefcase } from "lucide-react";
+import { useState, useEffect } from "react";
 
 export default function Rank() {
-  const API_BASE = "https://resume-ranker-backend-esei.onrender.com";
-  // const API_BASE = "http://127.0.0.1:8000/";
+  const API_BASE = "http://127.0.0.1:8000";
 
   const [files, setFiles] = useState([]);
-  const [jobDesc, setJobDesc] = useState("");
+  const [jobs, setJobs] = useState([]);
+  const [selectedJobId, setSelectedJobId] = useState("");
   const [result, setResult] = useState(null);
+  const [jobTitle, setJobTitle] = useState("");
   const [loading, setLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    fetchJobs();
+  }, []);
+
+  const fetchJobs = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/ats/jobs/`);
+      const data = await res.json();
+      setJobs(data);
+    } catch (err) {
+      console.error("Failed to fetch jobs", err);
+    }
+  };
 
   const handleDrop = (e) => {
     e.preventDefault();
@@ -20,15 +35,16 @@ export default function Rank() {
   const handleFileChange = (e) => {
     setFiles(Array.from(e.target.files));
   };
+  
   const handleRank = async () => {
-    if (!files.length || !jobDesc) return;
+    if (!files.length || !selectedJobId) return;
 
     setLoading(true);
     setResult(null);
 
     const formData = new FormData();
     files.forEach((file) => formData.append("resumes", file));
-    formData.append("job_desc", jobDesc);
+    formData.append("job_id", selectedJobId);
 
     try {
       const res = await fetch(`${API_BASE}/api/ats/rank/`, {
@@ -38,6 +54,7 @@ export default function Rank() {
 
       const data = await res.json();
       setResult(data.ranked_candidates);
+      setJobTitle(data.job_title);
     } catch (err) {
       console.error(err);
       alert("Ranking failed");
@@ -51,12 +68,32 @@ export default function Rank() {
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold">Resume Ranking</h1>
           <p className="text-gray-600">
-            Upload multiple resumes and rank candidates based on job fit
+            Select a job and upload resumes to find the best candidates
           </p>
         </div>
 
         <div className="bg-white rounded-2xl p-8 shadow-sm grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="space-y-6">
+            
+            <div>
+              <div className="flex items-center gap-2 mb-3 font-medium text-sm">
+                <Briefcase className="w-4 h-4 text-indigo-600" />
+                Select Job Opening
+              </div>
+              <select
+                value={selectedJobId}
+                onChange={(e) => setSelectedJobId(e.target.value)}
+                className="w-full rounded-xl border border-gray-200 p-4 bg-white"
+              >
+                <option value="">-- Select a Job to Rank Against --</option>
+                {jobs.map((job) => (
+                  <option key={job.id} value={job.id}>
+                    {job.title} ({job.company})
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div>
               <div className="flex items-center gap-2 mb-3 font-medium text-sm">
                 <Users className="w-4 h-4 text-indigo-600" />
@@ -109,27 +146,13 @@ export default function Rank() {
               </div>
             </div>
 
-            <div>
-              <div className="flex items-center gap-2 mb-3 font-medium text-sm">
-                <FileText className="w-4 h-4 text-indigo-600" />
-                Job Description
-              </div>
-
-              <textarea
-                rows={6}
-                value={jobDesc}
-                onChange={(e) => setJobDesc(e.target.value)}
-                placeholder="Paste the job description here..."
-                className="w-full rounded-xl border border-gray-200 p-4"
-              />
-            </div>
             <button
               onClick={handleRank}
-              disabled={!files.length || !jobDesc || loading}
+              disabled={!files.length || !selectedJobId || loading}
               className={`
     w-full py-4 rounded-xl font-semibold transition shadow-md
     ${
-      !files.length || !jobDesc || loading
+      !files.length || !selectedJobId || loading
         ? "bg-indigo-300 text-white cursor-not-allowed"
         : "bg-indigo-600 text-white hover:bg-indigo-700"
     }
@@ -145,7 +168,7 @@ export default function Rank() {
                 <Users className="w-10 h-10 mx-auto mb-4" />
                 <p className="font-medium">No Rankings Yet</p>
                 <p className="text-sm">
-                  Upload resumes and a job description to rank candidates
+                  Select a job and upload resumes to start
                 </p>
               </div>
             )}
@@ -154,6 +177,11 @@ export default function Rank() {
 
             {result && (
               <div className="w-full space-y-4">
+                 <div className="bg-indigo-50 p-3 rounded-lg border border-indigo-100 mb-4 text-center">
+                    <p className="text-xs text-indigo-500 uppercase font-bold tracking-wider">Ranking For</p>
+                    <p className="font-bold text-gray-900">{jobTitle || "Selected Job"}</p>
+                 </div>
+
                 {result.map((r, i) => (
                   <div
                     key={i}

@@ -1,10 +1,13 @@
-import { NavLink } from "react-router-dom";
-import { FileText, Sparkles, Menu, X } from "lucide-react";
+import { NavLink, useNavigate } from "react-router-dom";
+import { FileText, Sparkles, Menu, X, LogOut } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "../src/context/AuthContext";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [visible, setVisible] = useState(false);
+  const { role, logout } = useAuth();
+  const navigate = useNavigate();
 
   const linkClass = ({ isActive }) =>
     `px-4 py-2 rounded-lg text-sm font-medium transition ${
@@ -27,7 +30,6 @@ export default function Navbar() {
     <>
       <nav className="fixed top-0 w-full z-50 backdrop-blur-md bg-white/70 border-b border-gray-200/50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center">
-
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-indigo-500 text-white flex items-center justify-center">
               <FileText className="w-5 h-5" />
@@ -43,17 +45,53 @@ export default function Navbar() {
           </div>
 
           <div className="absolute left-1/2 -translate-x-1/2 hidden md:flex gap-2">
-            <NavLink to="/" className={linkClass}>Home</NavLink>
-            <NavLink to="/analyze" className={linkClass}>Analyze</NavLink>
-            <NavLink to="/rank" className={linkClass}>Rank</NavLink>
-            <NavLink to="/generate" className={linkClass}>Generate</NavLink>
+            <NavLink to="/" className={linkClass}>
+              Home
+            </NavLink>
+
+            {role === "candidate" && (
+              <>
+                <NavLink to="/analyze" className={linkClass}>
+                  Analyze
+                </NavLink>
+                <NavLink to="/jobs" className={linkClass}>
+                  Jobs
+                </NavLink>
+              </>
+            )}
+
+            {role === "company" && (
+              <>
+                <NavLink to="/create-job" className={linkClass}>
+                  Post Job
+                </NavLink>
+                <NavLink to="/rank" className={linkClass}>
+                  Rank
+                </NavLink>
+              </>
+            )}
+             <NavLink to="/generate" className={linkClass}>
+                  Generate
+             </NavLink>
           </div>
 
           <div className="ml-auto flex items-center gap-3">
-            <span className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-100/70 text-indigo-600 text-sm font-medium">
-              <Sparkles className="w-4 h-4" />
-              AI Powered
-            </span>
+             {!role ? (
+              <NavLink
+                to="/login"
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition"
+              >
+                Login
+              </NavLink>
+            ) : (
+                <button
+                onClick={logout}
+                className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg text-red-600 hover:bg-red-50 transition font-medium"
+              >
+                <LogOut className="w-4 h-4" />
+                Logout
+              </button>
+            )}
 
             <button
               onClick={openSidebar}
@@ -67,7 +105,6 @@ export default function Navbar() {
 
       {visible && (
         <div className="fixed inset-0 z-50">
-          
           <div
             onClick={closeSidebar}
             className={`
@@ -109,15 +146,40 @@ export default function Navbar() {
               <NavLink onClick={closeSidebar} to="/" className={linkClass}>
                 Home
               </NavLink>
-              <NavLink onClick={closeSidebar} to="/analyze" className={linkClass}>
-                Analyze Resume
-              </NavLink>
-              <NavLink onClick={closeSidebar} to="/rank" className={linkClass}>
-                Rank Candidates
-              </NavLink>
+              
+              {role === "candidate" && (
+                <>
+                  <NavLink onClick={closeSidebar} to="/analyze" className={linkClass}>
+                    Analyze Resume
+                  </NavLink>
+                  <NavLink onClick={closeSidebar} to="/jobs" className={linkClass}>
+                    Jobs
+                  </NavLink>
+                </>
+              )}
+
+              {role === "company" && (
+                <>
+                   <NavLink onClick={closeSidebar} to="/create-job" className={linkClass}>
+                    Post Job
+                  </NavLink>
+                  <NavLink onClick={closeSidebar} to="/rank" className={linkClass}>
+                    Rank Candidates
+                  </NavLink>
+                </>
+              )}
+
               <NavLink onClick={closeSidebar} to="/generate" className={linkClass}>
                 Generate Resume
               </NavLink>
+              
+              {!role ? (
+                  <NavLink onClick={closeSidebar} to="/login" className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-center mt-4">Login</NavLink>
+              ): (
+                  <button onClick={() => {logout(); closeSidebar();}} className="flex items-center gap-2 text-red-600 px-4 py-2 mt-4 hover:bg-red-50 rounded-lg w-full text-left">
+                      <LogOut className="w-4 h-4" /> Logout
+                  </button>
+              )}
             </nav>
 
             <div className="flex-1" />

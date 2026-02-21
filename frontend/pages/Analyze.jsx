@@ -3,28 +3,28 @@ import {
   FileText,
   AlertCircle,
   Check,
-  AlertTriangle,
-  Lightbulb,
+  Briefcase,
+  ArrowRight
 } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 export default function Analyze() {
-  const API_BASE = "https://resume-ranker-backend-esei.onrender.com";
-  // const API_BASE = "http://127.0.0.1:8000/";
+  const API_BASE = "http://127.0.0.1:8000";
 
   const [resume, setResume] = useState(null);
-  const [jobDesc, setJobDesc] = useState("");
-  const [result, setResult] = useState(null);
+  const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
   const handleAnalyze = async () => {
-    if (!resume || !jobDesc) return;
+    if (!resume) return;
 
     setLoading(true);
-    setResult(null);
+    setResults(null);
 
     try {
+      // 1. Upload and Extract Text
       const uploadData = new FormData();
       uploadData.append("resume", resume);
 
@@ -35,16 +35,17 @@ export default function Analyze() {
 
       const uploadJson = await uploadRes.json();
 
-      const scoreRes = await fetch(`${API_BASE}/api/ats/score/`, {
+      // 2. Rank against all jobs
+      const rankRes = await fetch(`${API_BASE}/api/ats/rank-jobs/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           resume_text: uploadJson.text_preview,
-          job_desc: jobDesc,
         }),
       });
 
-      setResult(await scoreRes.json());
+      const rankJson = await rankRes.json();
+      setResults(rankJson);
     } catch (err) {
       console.error(err);
       alert("Analysis failed");
@@ -53,214 +54,137 @@ export default function Analyze() {
     }
   };
 
-  const getMatchLabel = (score) => {
-    if (score >= 80) return "Excellent Match";
-    if (score >= 60) return "Good Match";
-    if (score >= 40) return "Average Match";
-    return "Poor Match";
+  const getScoreColor = (score) => {
+    if (score >= 80) return "text-green-600 bg-green-50 border-green-100";
+    if (score >= 60) return "text-blue-600 bg-blue-50 border-blue-100";
+    if (score >= 40) return "text-yellow-600 bg-yellow-50 border-yellow-100";
+    return "text-red-600 bg-red-50 border-red-100";
   };
 
   return (
     <section className="bg-gray-50 min-h-screen py-16">
-      <div className="max-w-7xl mx-auto px-6">
+      <div className="max-w-5xl mx-auto px-6">
         <div className="text-center mb-12">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Resume Analysis
+            Find Your Perfect Job Match
           </h1>
           <p className="text-gray-600">
-            Upload your resume and job description to get an ATS compatibility
-            score
+            Upload your resume to see which open positions you are most compatible with.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="space-y-6">
-            <div className="bg-white rounded-2xl p-6 shadow-sm">
-              <div className="flex items-center gap-2 mb-4 text-sm font-medium">
-                <Upload className="w-4 h-4 text-indigo-600" />
-                Upload Resume
-              </div>
+        {/* Upload Section */}
+        <div className="bg-white rounded-2xl p-8 shadow-sm max-w-2xl mx-auto mb-12">
+            <div
+            onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragging(true);
+            }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={(e) => {
+                e.preventDefault();
+                setIsDragging(false);
+                setResume(e.dataTransfer.files[0]);
+            }}
+            onClick={() => document.getElementById("resume-upload").click()}
+            className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition
+                ${
+                isDragging
+                    ? "border-indigo-500 bg-indigo-50"
+                    : "border-gray-300 hover:border-indigo-400 hover:bg-gray-50"
+                }`}
+            >
+            {resume ? (
+                <div className="flex flex-col items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                    <Check className="w-6 h-6 text-green-600" />
+                </div>
+                <p className="text-lg font-medium text-gray-900">{resume.name}</p>
+                <p className="text-sm text-gray-500">Tap to replace</p>
+                </div>
+            ) : (
+                <div className="flex flex-col items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center mb-2">
+                    <Upload className="w-6 h-6 text-indigo-600" />
+                </div>
+                <p className="text-lg font-medium text-gray-700">
+                    Drop your resume here
+                </p>
+                <p className="text-sm text-gray-500">
+                    or click to browse PDF/DOCX
+                </p>
+                </div>
+            )}
 
-              <div
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setIsDragging(true);
-                }}
-                onDragLeave={() => setIsDragging(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setIsDragging(false);
-                  setResume(e.dataTransfer.files[0]);
-                }}
-                onClick={() => document.getElementById("resume-upload").click()}
-                className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition
-                  ${
-                    isDragging
-                      ? "border-indigo-500 bg-indigo-100"
-                      : "border-indigo-300 bg-indigo-50 hover:border-indigo-400"
-                  }`}
-              >
-                {resume ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
-                      <Check className="w-5 h-5 text-indigo-600" />
-                    </div>
-                    <p className="text-sm font-medium">{resume.name}</p>
-                    <p className="text-xs text-gray-500">Tap to replace</p>
-                  </div>
-                ) : (
-                  <>
-                    <FileText className="w-8 h-8 mx-auto mb-3 text-indigo-400" />
-                    <p className="text-sm text-gray-600">
-                      Drop resume here or click to browse
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      PDF, DOC, DOCX
-                    </p>
-                  </>
-                )}
-
-                <input
-                  id="resume-upload"
-                  type="file"
-                  className="hidden"
-                  accept=".pdf,.doc,.docx"
-                  onChange={(e) => setResume(e.target.files[0])}
-                />
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl p-6 shadow-sm">
-              <div className="flex items-center gap-2 mb-4 text-sm font-medium">
-                <FileText className="w-4 h-4 text-indigo-600" />
-                Job Description
-              </div>
-
-              <textarea
-                rows={6}
-                value={jobDesc}
-                onChange={(e) => setJobDesc(e.target.value)}
-                placeholder="Paste the job description here..."
-                className="w-full rounded-xl border border-gray-200 p-4"
-              />
+            <input
+                id="resume-upload"
+                type="file"
+                className="hidden"
+                accept=".pdf,.doc,.docx"
+                onChange={(e) => setResume(e.target.files[0])}
+            />
             </div>
 
             <button
-              onClick={handleAnalyze}
-              disabled={!resume || !jobDesc || loading}
-              className={`w-full py-4 rounded-xl font-semibold transition shadow-md
-                ${
-                  !resume || !jobDesc || loading
-                    ? "bg-indigo-300 cursor-not-allowed"
-                    : "bg-indigo-600 hover:bg-indigo-700"
-                } text-white`}
+            onClick={handleAnalyze}
+            disabled={!resume || loading}
+            className="w-full mt-6 py-4 rounded-xl font-bold text-lg shadow-lg transition
+                bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "Analyzing..." : "Get ATS Score"}
+            {loading ? "Matching Jobs..." : "Find Matches"}
             </button>
-          </div>
-
-          <div className="bg-white rounded-2xl p-6 sm:p-10 shadow-sm flex items-center justify-center">
-            {loading && (
-              <div className="text-center text-indigo-600">
-                <div className="w-10 h-10 mx-auto mb-4 border-4 border-indigo-300 border-t-indigo-600 rounded-full animate-spin" />
-                <p className="text-sm font-medium">Analyzing resume...</p>
-              </div>
-            )}
-
-            {!loading && !result && (
-              <div className="text-center text-gray-400">
-                <AlertCircle className="w-10 h-10 mx-auto mb-4" />
-                <p className="font-medium">No Analysis Yet</p>
-                <p className="text-sm">
-                  Upload a resume and job description to see results
-                </p>
-              </div>
-            )}
-
-            {!loading && result && (
-              <div className="space-y-6 w-full animate-fade-in">
-                {/* SCORE CARD */}
-                <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
-                  <div className="relative w-24 h-24 sm:w-28 sm:h-28">
-                    <svg className="w-full h-full rotate-[-90deg]">
-                      <circle
-                        cx="50%"
-                        cy="50%"
-                        r="42%"
-                        stroke="#e5e7eb"
-                        strokeWidth="8"
-                        fill="none"
-                      />
-                      <circle
-                        cx="50%"
-                        cy="50%"
-                        r="42%"
-                        stroke="#14b8a6"
-                        strokeWidth="8"
-                        fill="none"
-                        strokeDasharray={264}
-                        strokeDashoffset={
-                          264 * (1 - result.ats_score / 100)
-                        }
-                        strokeLinecap="round"
-                        className="transition-all duration-1000 ease-out"
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center text-lg sm:text-xl font-bold text-teal-600">
-                      {result.ats_score}%
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <p className="text-sm text-gray-500">
-                      ATS Compatibility Score
-                    </p>
-                    <h3 className="text-lg font-semibold">
-                      {getMatchLabel(result.ats_score)}
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      Resume matches {result.ats_score}% of requirements
-                    </p>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-2xl p-6 shadow-sm">
-                  <h4 className="font-semibold mb-3 flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-yellow-500" />
-                    Missing Skills
-                  </h4>
-
-                  <div className="flex flex-wrap gap-2">
-                    {result.missing_skills.map((skill, i) => (
-                      <span
-                        key={i}
-                        className="px-3 py-1 rounded-full bg-yellow-100 text-yellow-700 text-xs sm:text-sm"
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-2xl p-6 shadow-sm">
-                  <h4 className="font-semibold mb-3 flex items-center gap-2">
-                    <Lightbulb className="w-4 h-4 text-indigo-500" />
-                    Improvement Suggestions
-                  </h4>
-
-                  <ul className="space-y-2 sm:space-y-3 text-sm text-gray-600">
-                    {result.suggestions.map((s, i) => (
-                      <li key={i} className="flex gap-2">
-                        <span className="text-indigo-500">•</span>
-                        {s}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
+
+        {/* Results Section */}
+        {loading && (
+             <div className="text-center py-12">
+                <div className="w-12 h-12 mx-auto mb-4 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+                <p className="text-lg text-gray-600 font-medium">Analyzing your resume against active jobs...</p>
+             </div>
+        )}
+
+        {!loading && results && (
+            <div className="animate-fade-in space-y-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Top Matches for You</h2>
+                
+                {results.length === 0 ? (
+                    <div className="text-center py-12 bg-white rounded-2xl shadow-sm">
+                        <AlertCircle className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                        <p className="text-gray-600 text-lg">No jobs found matching your profile.</p>
+                    </div>
+                ) : (
+                    <div className="grid gap-6">
+                        {results.map((job) => (
+                            <div key={job.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+                                <div className="flex-1">
+                                    <h3 className="text-xl font-bold text-gray-900 mb-1">{job.title}</h3>
+                                    <p className="text-gray-500 font-medium flex items-center gap-2">
+                                        <Briefcase className="w-4 h-4" />
+                                        {job.company}
+                                    </p>
+                                </div>
+
+                                <div className="flex items-center gap-6 w-full sm:w-auto justify-between sm:justify-end">
+                                    <div className={`px-4 py-2 rounded-lg border flex flex-col items-center ${getScoreColor(job.score)}`}>
+                                        <span className="text-2xl font-bold">{job.score}%</span>
+                                        <span className="text-xs uppercase font-bold tracking-wider">Match</span>
+                                    </div>
+                                    
+                                    <Link 
+                                        to={`/jobs/${job.id}`}
+                                        className="bg-indigo-600 text-white p-3 rounded-full hover:bg-indigo-700 transition shadow-md"
+                                        title="View Job"
+                                    >
+                                        <ArrowRight className="w-5 h-5" />
+                                    </Link>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        )}
+
       </div>
     </section>
   );

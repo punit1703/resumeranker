@@ -1,15 +1,16 @@
 import os
+import json
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.core.files.storage import default_storage
 from .parser.resume_parser import extract_text
-from .scoring.ats_score import calculate_ats_score
+from .scoring.ats_score import calculate_ats_score, skill_gap_analysis
 from django.views.decorators.csrf import csrf_exempt
 from .ranking.ranker import rank_resumes
 from .resume_builder.builder import build_resume
 from .resume_builder.pdf_generator import generate_pdf
-from .analysis.skill_gap import skill_gap_analysis
 from django.http import HttpResponse
+from .models import Job, Application
 
 @csrf_exempt
 @api_view(['GET'])
@@ -38,13 +39,36 @@ def upload_resume(request):
 @api_view(['POST'])
 def ats_score(request):
     resume_text = request.data.get('resume_text')
-    job_desc = request.data.get('job_desc')
+    job_desc_id = request.data.get('job_desc_id') # Changed to accept job ID
+    custom_job_desc = request.data.get('custom_job_desc') # Added for custom job description
 
-    if not resume_text or not job_desc:
-        return Response({'error':'Missing Data'}, status=400)
-    
-    score = calculate_ats_score(resume_text, job_desc)
-    gap_analysis = skill_gap_analysis(resume_text, job_desc)
+    if not resume_text:
+        return Response({'error':'Missing resume text'}, status=400)
+
+    final_job_desc = ""
+    job_obj = None
+
+    if job_desc_id:
+        try:
+            job_obj = Job.objects.get(id=job_desc_id)
+            final_job_desc = job_obj.description
+            # improved scoring with skills
+            try:
+                skills = json.loads(job_obj.skills)
+                if skills:
+                    final_job_desc += "\n\nRequired Skills: " + ", ".join(skills)
+            except json.JSONDecodeError:
+                # Handle cases where job.skills might not be valid JSON
+                pass
+        except Job.DoesNotExist:
+            return Response({'error': 'Job description not found for provided ID'}, status=404)
+    elif custom_job_desc:
+        final_job_desc = custom_job_desc
+    else:
+        return Response({'error':'Missing job description (either ID or custom text required)'}, status=400)
+
+    score = calculate_ats_score(resume_text, final_job_desc)
+    gap_analysis = skill_gap_analysis(resume_text, final_job_desc) # Use final_job_desc for gap analysis
 
     return Response({
         'ats_score': score,
@@ -54,11 +78,26 @@ def ats_score(request):
 
 @api_view(['POST'])
 def rank_multiple_resumes(request):
-    job_desc = request.data.get('job_desc')
+    job_id = request.data.get('job_id')
     files = request.FILES.getlist('resumes')
 
-    if not job_desc or not files:
-        return Response({'error': 'Missing job description or resumes'}, status=400)
+    if not job_id or not files:
+        return Response({'error': 'Missing job selection or resumes'}, status=400)
+    
+    try:
+        job = Job.objects.get(id=job_id)
+        job_desc = job.description
+        # Append skills if available
+        try:
+            if job.skills:
+                skills = json.loads(job.skills)
+                if skills:
+                    job_desc += "\n\nRequired Skills: " + ", ".join(skills)
+        except:
+            pass
+            
+    except Job.DoesNotExist:
+        return Response({'error': 'Selected job not found'}, status=404)
     
     extracted_resumes = []
 
@@ -76,7 +115,8 @@ def rank_multiple_resumes(request):
 
     return Response({
         'total_resumes': len(ranked_resume),
-        'ranked_candidates': ranked_resume
+        'ranked_candidates': ranked_resume,
+        'job_title': job.title
     })
 
 @api_view(['POST'])
@@ -95,3 +135,182 @@ def generate_resume(request):
     )
     response['Content-Disposition'] = 'attachment; filename="ATS_Resume.pdf"'
     return response
+
+@api_view(['POST'])
+def create_job(request):
+    try:
+        data = request.data
+        print("Received Job Data:", data) # Debugging
+
+        required_fields = ["title", "company_name", "description"]
+        for field in required_fields:
+            if not data.get(field):
+                return Response({"error": f"Field '{field}' is required."}, status=400)
+
+        min_score = data.get("min_score_required")
+        if min_score is None or min_score == "":
+            min_score = 50
+        
+        try:
+            min_score = float(min_score)
+        except ValueError:
+             return Response({"error": "Invalid value for Minimum ATS Score"}, status=400)
+
+        skills_list = data.get("skills", [])
+        if isinstance(skills_list, str):
+            try:
+                skills_list = json.loads(skills_list)
+            except:
+                skills_list = []
+        
+        skills_json = json.dumps(skills_list)
+
+        job = Job.objects.create(
+            title=data.get("title"),
+            company_name=data.get("company_name"),
+            description=data.get("description"),
+            skills=skills_json,
+            min_score_required=min_score
+        )
+
+        return Response({"message": "Job created successfully"})
+    except Exception as e:
+        print(f"Error creating job: {e}")
+        return Response({"error": str(e)}, status=500)
+
+@api_view(['POST'])
+def apply_job(request, job_id):
+    job = Job.objects.get(id=job_id)
+
+    resume = request.FILES.get("resume")
+    candidate_name = request.data.get("candidate_name")
+
+    if not resume:
+        return Response({"error": "Resume required"}, status=400)
+
+    file_path = default_storage.save(resume.name, resume)
+    full_path = default_storage.path(file_path)
+
+    resume_text = extract_text(full_path)
+    os.remove(full_path)
+
+    score = calculate_ats_score(resume_text, job.description)
+
+    if score < job.min_score_required:
+        return Response({
+            "eligible": False,
+            "ats_score": score,
+            "message": "You are not eligible for this job"
+        })
+
+    Application.objects.create(
+        job=job,
+        candidate_name=candidate_name,
+        resume_file=resume,
+        ats_score=score
+    )
+
+    return Response({
+        "eligible": True,
+        "ats_score": score,
+        "message": "Application submitted successfully"
+    })
+
+@api_view(['GET'])
+def list_jobs(request):
+    jobs = Job.objects.all().order_by("-created_at")
+
+    data = [
+        {
+            "id": job.id,
+            "title": job.title,
+            "company": job.company_name,
+            "min_score_required": job.min_score_required
+        }
+        for job in jobs
+    ]
+
+    return Response(data)
+
+@api_view(['GET'])
+def get_job(request, job_id):
+    try:
+        job = Job.objects.get(id=job_id)
+    except Job.DoesNotExist:
+        return Response({"error": "Job not found"}, status=404)
+
+    skills_list = []
+    try:
+        if job.skills:
+            skills_list = json.loads(job.skills)
+    except:
+        pass
+
+    data = {
+        "id": job.id,
+        "title": job.title,
+        "company": job.company_name,
+        "description": job.description,
+        "skills": skills_list,
+        "min_score_required": job.min_score_required
+    }
+    return Response(data)
+
+@api_view(['GET'])
+def list_applications(request, job_id):
+    try:
+        job = Job.objects.get(id=job_id)
+    except Job.DoesNotExist:
+        return Response({"error": "Job not found"}, status=404)
+        
+    applications = job.applications.all().order_by("-ats_score")
+    
+    data = [
+        {
+            "id": app.id,
+            "candidate_name": app.candidate_name,
+            "ats_score": app.ats_score,
+            "applied_at": app.applied_at,
+            "resume_url": request.build_absolute_uri(app.resume_file.url) if app.resume_file else None
+        }
+        for app in applications
+    ]
+    
+    return Response(data)
+
+@api_view(['POST'])
+def rank_jobs_for_resume(request):
+    resume_text = request.data.get('resume_text')
+
+    if not resume_text:
+        return Response({'error': 'Missing resume text'}, status=400)
+
+    jobs = Job.objects.all()
+    ranked_jobs = []
+
+    for job in jobs:
+        # Construct full job description with skills
+        full_job_desc = job.description
+        try:
+            if job.skills:
+                skills = json.loads(job.skills)
+                if skills:
+                    full_job_desc += "\n\nRequired Skills: " + ", ".join(skills)
+        except:
+            pass
+        
+        score = calculate_ats_score(resume_text, full_job_desc)
+        
+        ranked_jobs.append({
+            "id": job.id,
+            "title": job.title,
+            "company": job.company_name,
+            "score": score,
+            "min_score": job.min_score_required,
+            "eligible": score >= job.min_score_required
+        })
+    
+    # Sort by score descending
+    ranked_jobs.sort(key=lambda x: x['score'], reverse=True)
+
+    return Response(ranked_jobs)
