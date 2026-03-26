@@ -1,5 +1,5 @@
-import { NavLink, useNavigate } from "react-router-dom";
-import { FileText, Sparkles, Menu, X, LogOut } from "lucide-react";
+import { NavLink, Link, useLocation } from "react-router-dom";
+import { FileText, Menu, X, LogOut } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../src/context/AuthContext";
 
@@ -7,7 +7,16 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [visible, setVisible] = useState(false);
   const { role, logout } = useAuth();
-  const navigate = useNavigate();
+  const location = useLocation();
+
+  // If there is no authenticated role AND the user is on the specific public pages, 
+  // only show the text minimal version.
+  const isPublicPage = location.pathname === "/" || location.pathname === "/role-select" || location.pathname === "/login";
+  // UPDATE: Wait, the user said "there should not be the nav bar showen in the landing page the nav bar will be showen after login process"
+  if (!role) {
+    return null; // Do not show navbar at all if not authenticated
+  }
+
 
   const linkClass = ({ isActive }) =>
     `px-4 py-2 rounded-lg text-sm font-medium transition ${
@@ -45,10 +54,6 @@ export default function Navbar() {
           </div>
 
           <div className="absolute left-1/2 -translate-x-1/2 hidden md:flex gap-2">
-            <NavLink to="/" className={linkClass}>
-              Home
-            </NavLink>
-
             {role === "candidate" && (
               <>
                 <NavLink to="/analyze" className={linkClass}>
@@ -62,6 +67,9 @@ export default function Navbar() {
 
             {role === "company" && (
               <>
+                <NavLink to="/employer/applications" className={linkClass}>
+                  My Jobs
+                </NavLink>
                 <NavLink to="/create-job" className={linkClass}>
                   Post Job
                 </NavLink>
@@ -70,12 +78,14 @@ export default function Navbar() {
                 </NavLink>
               </>
             )}
-             <NavLink to="/generate" className={linkClass}>
-                  Generate
-             </NavLink>
+             {role === "candidate" && (
+                <NavLink to="/generate" className={linkClass}>
+                     Generate
+                </NavLink>
+             )}
           </div>
 
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-4">
              {!role ? (
               <NavLink
                 to="/login"
@@ -84,13 +94,15 @@ export default function Navbar() {
                 Login
               </NavLink>
             ) : (
-                <button
-                onClick={logout}
-                className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg text-red-600 hover:bg-red-50 transition font-medium"
-              >
-                <LogOut className="w-4 h-4" />
-                Logout
-              </button>
+                <div className="hidden md:flex items-center gap-4">
+                    <button
+                        onClick={logout}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-red-600 hover:bg-red-50 hover:text-red-700 transition font-medium"
+                    >
+                        <LogOut className="w-4 h-4" />
+                        Logout
+                    </button>
+                </div>
             )}
 
             <button
@@ -143,10 +155,6 @@ export default function Navbar() {
             </div>
 
             <nav className="flex flex-col gap-2 text-sm font-medium">
-              <NavLink onClick={closeSidebar} to="/" className={linkClass}>
-                Home
-              </NavLink>
-              
               {role === "candidate" && (
                 <>
                   <NavLink onClick={closeSidebar} to="/analyze" className={linkClass}>
@@ -160,6 +168,9 @@ export default function Navbar() {
 
               {role === "company" && (
                 <>
+                   <NavLink onClick={closeSidebar} to="/employer/applications" className={linkClass}>
+                    My Jobs
+                  </NavLink>
                    <NavLink onClick={closeSidebar} to="/create-job" className={linkClass}>
                     Post Job
                   </NavLink>
@@ -169,9 +180,11 @@ export default function Navbar() {
                 </>
               )}
 
-              <NavLink onClick={closeSidebar} to="/generate" className={linkClass}>
-                Generate Resume
-              </NavLink>
+              {role === "candidate" && (
+                <NavLink onClick={closeSidebar} to="/generate" className={linkClass}>
+                  Generate Resume
+                </NavLink>
+              )}
               
               {!role ? (
                   <NavLink onClick={closeSidebar} to="/login" className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-center mt-4">Login</NavLink>

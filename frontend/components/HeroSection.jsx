@@ -34,7 +34,7 @@ export default function HeroSection() {
           </a>
 
           <a
-            href="#"
+            href="https://github.com/punit1703/resumeranker/blob/main/README.md"
             className="px-7 py-4 rounded-xl border border-black bg-white text-gray-700 text-sm sm:text-base font-medium
             transition duration-200 ease-in-out hover:bg-black hover:text-white"
           >

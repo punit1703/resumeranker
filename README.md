@@ -120,6 +120,16 @@ https://resume-ranker-backend-esei.onrender.com
 
 **Punit Patel**  
 Backend development, ATS logic, API design, deployment
+<<<<<<< HEAD
+
+---
+
+## 👥 Project Team
+
+- **Purv Patel** — Documentation
+- **Om Patel** — UI review,Testing and presentation support
+=======
+>>>>>>> 3ab797a5afc293f020ff8092fa7f390013c8912b
 
 ---
 

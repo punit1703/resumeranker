@@ -1,21 +1,62 @@
 import os
 import json
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.authtoken.models import Token
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate
 from django.core.files.storage import default_storage
-from .parser.resume_parser import extract_text
-from .scoring.ats_score import calculate_ats_score, skill_gap_analysis
 from django.views.decorators.csrf import csrf_exempt
+from django.http import HttpResponse
+
+from .parser.resume_parser import extract_text
+from .scoring.ats_score import calculate_ats_score
 from .ranking.ranker import rank_resumes
 from .resume_builder.builder import build_resume
 from .resume_builder.pdf_generator import generate_pdf
-from django.http import HttpResponse
-from .models import Job, Application
+from .models import Job, Application, UserProfile
+
+# --- ATS ENDPOINTS ---
 
 @csrf_exempt
 @api_view(['GET'])
 def health_check(request):
     return Response({'status': 'Backend Running...'})
+
+@api_view(['POST'])
+def register(request):
+    data = request.data
+    username = data.get('username')
+    password = data.get('password')
+    role = data.get('role', 'candidate')
+    
+    if not username or not password:
+        return Response({'error': 'Username and password required'}, status=400)
+    
+    if User.objects.filter(username=username).exists():
+        return Response({'error': 'Username already exists'}, status=400)
+        
+    user = User.objects.create_user(username=username, password=password)
+    UserProfile.objects.create(user=user, role=role)
+    token, _ = Token.objects.get_or_create(user=user)
+    
+    return Response({'token': token.key, 'role': role, 'user_id': user.id})
+
+@api_view(['POST'])
+def login(request):
+    data = request.data
+    username = data.get('username')
+    password = data.get('password')
+    
+    user = authenticate(username=username, password=password)
+    if user:
+        token, _ = Token.objects.get_or_create(user=user)
+        role = user.profile.role if hasattr(user, 'profile') else 'candidate'
+        return Response({'token': token.key, 'role': role, 'user_id': user.id})
+    else:
+        return Response({'error': 'Invalid credentials'}, status=401)
 
 @api_view(['POST'])
 def upload_resume(request):
@@ -38,12 +79,17 @@ def upload_resume(request):
 
 @api_view(['POST'])
 def ats_score(request):
-    resume_text = request.data.get('resume_text')
-    job_desc_id = request.data.get('job_desc_id') # Changed to accept job ID
-    custom_job_desc = request.data.get('custom_job_desc') # Added for custom job description
+    resume = request.FILES.get('resume')
+    job_desc_id = request.data.get('job_desc_id')
+    custom_job_desc = request.data.get('custom_job_desc')
 
-    if not resume_text:
-        return Response({'error':'Missing resume text'}, status=400)
+    if not resume:
+        return Response({'error': 'Missing resume file.'}, status=400)
+
+    file_path = default_storage.save(resume.name, resume)
+    full_path = default_storage.path(file_path)
+    resume_text = extract_text(full_path)
+    os.remove(full_path)
 
     final_job_desc = ""
     job_obj = None
@@ -52,13 +98,11 @@ def ats_score(request):
         try:
             job_obj = Job.objects.get(id=job_desc_id)
             final_job_desc = job_obj.description
-            # improved scoring with skills
             try:
                 skills = json.loads(job_obj.skills)
                 if skills:
                     final_job_desc += "\n\nRequired Skills: " + ", ".join(skills)
             except json.JSONDecodeError:
-                # Handle cases where job.skills might not be valid JSON
                 pass
         except Job.DoesNotExist:
             return Response({'error': 'Job description not found for provided ID'}, status=404)
@@ -68,21 +112,22 @@ def ats_score(request):
         return Response({'error':'Missing job description (either ID or custom text required)'}, status=400)
 
     score = calculate_ats_score(resume_text, final_job_desc)
-    gap_analysis = skill_gap_analysis(resume_text, final_job_desc) # Use final_job_desc for gap analysis
 
     return Response({
-        'ats_score': score,
-        'missing_skills': gap_analysis['missing_skills'],
-        'suggestions': gap_analysis['suggestions']
+        'ats_score': score
     })
 
 @api_view(['POST'])
 def rank_multiple_resumes(request):
     job_id = request.data.get('job_id')
     files = request.FILES.getlist('resumes')
+    use_existing = request.data.get('use_existing', 'false').lower() == 'true'
 
-    if not job_id or not files:
-        return Response({'error': 'Missing job selection or resumes'}, status=400)
+    if not job_id:
+        return Response({'error': 'Missing job selection'}, status=400)
+        
+    if not files and not use_existing:
+        return Response({'error': 'Missing resumes'}, status=400)
     
     try:
         job = Job.objects.get(id=job_id)
@@ -101,15 +146,30 @@ def rank_multiple_resumes(request):
     
     extracted_resumes = []
 
-    for resume in files:
-        file_path = default_storage.save(resume.name, resume)
-        full_path = default_storage.path(file_path)
+    if use_existing:
+        applications = job.applications.all()
+        for app in applications:
+            if app.resume_file:
+                try:
+                    full_path = app.resume_file.path
+                    text = extract_text(full_path)
+                    extracted_resumes.append({'filename': app.candidate_name, 'text': text})
+                except Exception as e:
+                    print(f"Error extracting text for {app.candidate_name}: {e}")
+                    pass
+    else:
+        for resume in files:
+            file_path = default_storage.save(resume.name, resume)
+            full_path = default_storage.path(file_path)
 
-        text = extract_text(full_path)
+            text = extract_text(full_path)
 
-        extracted_resumes.append({'filename': resume.name, 'text':text})
+            extracted_resumes.append({'filename': resume.name, 'text':text})
 
-        os.remove(full_path)
+            os.remove(full_path)
+
+    if not extracted_resumes:
+        return Response({'error': 'No resumes found to rank'}, status=400)
 
     ranked_resume = rank_resumes(extracted_resumes, job_desc)
 
@@ -126,8 +186,7 @@ def generate_resume(request):
     if not data.get('name'):
         return Response({'error': 'Name is required'}, status=400)
 
-    resume_text = build_resume(data)
-    pdf_buffer = generate_pdf(resume_text)
+    pdf_buffer = generate_pdf(data)
 
     response = HttpResponse(
         pdf_buffer,
@@ -137,6 +196,8 @@ def generate_resume(request):
     return response
 
 @api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 def create_job(request):
     try:
         data = request.data
@@ -166,6 +227,7 @@ def create_job(request):
         skills_json = json.dumps(skills_list)
 
         job = Job.objects.create(
+            employer=request.user,
             title=data.get("title"),
             company_name=data.get("company_name"),
             description=data.get("description"),
@@ -179,6 +241,8 @@ def create_job(request):
         return Response({"error": str(e)}, status=500)
 
 @api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 def apply_job(request, job_id):
     job = Job.objects.get(id=job_id)
 
@@ -204,6 +268,7 @@ def apply_job(request, job_id):
         })
 
     Application.objects.create(
+        candidate=request.user,
         job=job,
         candidate_name=candidate_name,
         resume_file=resume,
@@ -217,8 +282,12 @@ def apply_job(request, job_id):
     })
 
 @api_view(['GET'])
+@authentication_classes([TokenAuthentication])
 def list_jobs(request):
-    jobs = Job.objects.all().order_by("-created_at")
+    jobs = Job.objects.all()
+    if request.GET.get('my_jobs') == 'true' and request.user.is_authenticated:
+        jobs = jobs.filter(employer=request.user)
+    jobs = jobs.order_by("-created_at")
 
     data = [
         {
@@ -257,11 +326,16 @@ def get_job(request, job_id):
     return Response(data)
 
 @api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 def list_applications(request, job_id):
     try:
         job = Job.objects.get(id=job_id)
     except Job.DoesNotExist:
         return Response({"error": "Job not found"}, status=404)
+        
+    if job.employer != request.user:
+        return Response({"error": "Forbidden: You do not own this job"}, status=403)
         
     applications = job.applications.all().order_by("-ats_score")
     
@@ -278,18 +352,22 @@ def list_applications(request, job_id):
     
     return Response(data)
 
-@api_view(['POST'])
+@api_view(['POST', 'GET'])
 def rank_jobs_for_resume(request):
-    resume_text = request.data.get('resume_text')
+    resume = request.FILES.get('resume')
 
-    if not resume_text:
-        return Response({'error': 'Missing resume text'}, status=400)
+    if not resume:
+        return Response({'error': 'Missing resume file.'}, status=400)
+
+    file_path = default_storage.save(resume.name, resume)
+    full_path = default_storage.path(file_path)
+    resume_text = extract_text(full_path)
+    os.remove(full_path)
 
     jobs = Job.objects.all()
     ranked_jobs = []
 
     for job in jobs:
-        # Construct full job description with skills
         full_job_desc = job.description
         try:
             if job.skills:
@@ -310,7 +388,6 @@ def rank_jobs_for_resume(request):
             "eligible": score >= job.min_score_required
         })
     
-    # Sort by score descending
     ranked_jobs.sort(key=lambda x: x['score'], reverse=True)
 
     return Response(ranked_jobs)

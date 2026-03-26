@@ -9,6 +9,11 @@ export default function ProtectedRoute({ children, allowedRoles }) {
   }
 
   if (allowedRoles && !allowedRoles.includes(role)) {
+    if (role === "candidate") {
+      return <Navigate to="/analyze" replace />;
+    } else if (role === "company") {
+      return <Navigate to="/rank" replace />;
+    }
     return <Navigate to="/" replace />;
   }
 
