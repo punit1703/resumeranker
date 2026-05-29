@@ -14,7 +14,7 @@ export default function Navbar() {
   const isPublicPage = location.pathname === "/" || location.pathname === "/role-select" || location.pathname === "/login";
   // UPDATE: Wait, the user said "there should not be the nav bar showen in the landing page the nav bar will be showen after login process"
   if (!role) {
-    return null; // Do not show navbar at all if not authenticated
+    return null; 
   }
 
 

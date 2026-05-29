@@ -16,13 +16,13 @@ export default function JobApplications() {
 
   useEffect(() => {
     // Fetch job details to get title
-    fetch(`http://127.0.0.1:8000/api/ats/jobs/${id}/`)
+    fetch(`https://resume-ranker-backend-esei.onrender.com/api/ats/jobs/${id}/`)
       .then((res) => res.json())
       .then((data) => setJobTitle(data.title))
       .catch(console.error);
 
     // Fetch applications
-    fetch(`http://127.0.0.1:8000/api/ats/applications/${id}/`, {
+    fetch(`https://resume-ranker-backend-esei.onrender.com/api/ats/applications/${id}/`, {
       headers: { "Authorization": `Token ${token}` }
     })
       .then((res) => {
@@ -53,7 +53,7 @@ export default function JobApplications() {
         formData.append("job_id", id);
         formData.append("use_existing", "true");
 
-        const res = await fetch(`http://127.0.0.1:8000/api/ats/rank/`, {
+        const res = await fetch(`https://resume-ranker-backend-esei.onrender.com/api/ats/rank/`, {
             method: "POST",
             headers: {
                 "Authorization": `Token ${token}`

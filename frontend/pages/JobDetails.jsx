@@ -33,7 +33,7 @@ export default function JobDetails() {
   }, [globalResume]);
 
   useEffect(() => {
-    fetch(`http://127.0.0.1:8000/api/ats/jobs/${id}/`)
+    fetch(`https://resume-ranker-backend-esei.onrender.com/api/ats/jobs/${id}/`)
       .then((res) => res.json())
       .then((data) => setJob(data))
       .catch((err) => console.error(err));
@@ -50,7 +50,7 @@ export default function JobDetails() {
 
     try {
       const response = await fetch(
-        `http://127.0.0.1:8000/api/ats/jobs/${id}/apply/`,
+        `https://resume-ranker-backend-esei.onrender.com/api/ats/jobs/${id}/apply/`,
         {
           method: "POST",
           headers: {

@@ -11,7 +11,7 @@ export default function EmployerDashboard() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/api/ats/jobs/?my_jobs=true", {
+    fetch("https://resume-ranker-backend-esei.onrender.com/api/ats/jobs/?my_jobs=true", {
         headers: { "Authorization": `Token ${token}` }
     })
       .then((res) => {

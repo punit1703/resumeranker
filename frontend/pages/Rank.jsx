@@ -2,7 +2,7 @@ import { Users, Trophy, Briefcase, Upload, FileText, ChevronDown, CheckCircle2, 
 import { useState, useEffect } from "react";
 
 export default function Rank() {
-  const API_BASE = "http://127.0.0.1:8000";
+  const API_BASE = "https://resume-ranker-backend-esei.onrender.com";
 
   const [files, setFiles] = useState([]);
   const [jobs, setJobs] = useState([]);

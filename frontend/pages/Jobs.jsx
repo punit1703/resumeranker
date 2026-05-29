@@ -33,7 +33,7 @@ export default function Jobs() {
   });
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/api/ats/jobs/")
+    fetch("https://resume-ranker-backend-esei.onrender.com/api/ats/jobs/")
       .then((res) => res.json())
       .then((data) => {
         setJobs(data);

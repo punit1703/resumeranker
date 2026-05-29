@@ -63,4 +63,3 @@ def calculate_ats_score(resume_text: str, job_desc: str) -> float:
         return round(match_percentage, 2)
     except Exception:
         return 0.0
-

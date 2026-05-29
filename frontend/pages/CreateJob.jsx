@@ -68,7 +68,7 @@ export default function CreateJob() {
 
     try {
       const response = await fetch(
-        "http://127.0.0.1:8000/api/ats/jobs/create/",
+        "https://resume-ranker-backend-esei.onrender.com/api/ats/jobs/create/",
         {
           method: "POST",
           headers: {

@@ -27,7 +27,7 @@ export default function Analyze() {
   const [applyResult, setApplyResult] = useState(null);
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/api/ats/jobs/")
+    fetch("https://resume-ranker-backend-esei.onrender.com/api/ats/jobs/")
       .then((res) => res.json())
       .then((data) => setJobs(data))
       .catch((err) => console.error(err));
@@ -58,7 +58,7 @@ export default function Analyze() {
       formData.append("resume", resumeToUse);
       formData.append("job_desc_id", selectedJob);
 
-      const res = await fetch("http://127.0.0.1:8000/api/ats/score/", {
+      const res = await fetch("https://resume-ranker-backend-esei.onrender.com/api/ats/score/", {
         method: "POST",
         body: formData,
       });
@@ -91,7 +91,7 @@ export default function Analyze() {
       formData.append("resume", localResume || globalResume);
       formData.append("candidate_name", candidateName);
 
-      const res = await fetch(`http://127.0.0.1:8000/api/ats/jobs/${selectedJob}/apply/`, {
+      const res = await fetch(`https://resume-ranker-backend-esei.onrender.com/api/ats/jobs/${selectedJob}/apply/`, {
         method: "POST",
         body: formData,
       });
